@@ -1,0 +1,13 @@
+:host {
+  display: block;
+  background-color: #222;
+  padding: 4px;
+}
+
+.pixel {
+  width: 12px;
+  height: 12px;
+  border-radius: 64px;
+  border: 2px solid black;
+  display: inline-block;
+}
