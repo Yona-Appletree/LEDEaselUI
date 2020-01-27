@@ -8,17 +8,22 @@ interface VisualFunction1D {
   apply(
     x: number,
     time: number
-  ): RgbColor;
+  ): RgbaColor;
+}
+
+interface ColorBandConfig {
+  colorSource: ColorFunction;
+  center: NumericFunction;
+  colorShift: NumericFunction;
+  alphaProfile: NumericFunction;
+  width: NumericFunction;
+  wrap: boolean;
+  scaleColor: boolean;
 }
 
 export class ColorBandFunction {
   constructor(
-    public colorSource: ColorFunction,
-    public center: NumericFunction,
-    public colorShift: NumericFunction,
-    public width: NumericFunction,
-    public wrap: boolean,
-    public scaleColor: boolean
+    public config: ColorBandConfig
   ) {
   }
 
@@ -26,19 +31,21 @@ export class ColorBandFunction {
     x: number,
     time: number
   ) {
-    const width = this.width.apply(time);
+    const config = this.config;
 
-    const waveCenter = this.center.apply(time);
+    const width = config.width.apply(time);
+
+    const waveCenter = config.center.apply(time);
 
     const start = (waveCenter - width / 2);
     const end = (waveCenter + width / 2);
 
-    if (this.wrap) {
-      if (end > 1 && x < (end - 1)) {
+    if (config.wrap) {
+      if (end > 1 &&  x < start && x < (end - 1)) {
         x += 1;
       }
 
-      if (start < 0 && x > (start + 1)) {
+      if (start < 0 && x > end && x > (start + 1)) {
         x -= 1;
       }
     }
@@ -48,8 +55,10 @@ export class ColorBandFunction {
       return BLACK;
     }
 
-    return this.colorSource.apply(
-      (this.scaleColor ? mappedX : x) + this.colorShift.apply(time)
+    return config.colorSource.apply(
+      (config.scaleColor ? mappedX : x) + config.colorShift.apply(time)
+    ).withAlpha(
+      config.alphaProfile.apply(mappedX)
     );
   }
 }
@@ -90,9 +99,22 @@ export class WaveFunction implements NumericFunction {
   }
 }
 
+/**
+ * Creates a polynomial triangle function, where powers higher than 1 smooth out the triangle.
+ */
+export class PolynomialTriangleFunction implements NumericFunction {
+  constructor(
+    public power: number = 1
+  ) {
+  }
+
+  apply(x: number) {
+    return 1 - Math.pow(Math.abs(x - .5) * 2, this.power);
+  }
+}
 
 interface ColorFunction {
-  apply(input: number): RgbColor;
+  apply(input: number): RgbaColor;
 }
 
 export class GradientFunction implements ColorFunction {
@@ -101,7 +123,7 @@ export class GradientFunction implements ColorFunction {
   ) {
   }
 
-  apply(input: number): RgbColor {
+  apply(input: number): RgbaColor {
     input = LedMath.sawtooth(input);
 
     for (let i = this.stops.length - 1; i >= 0; i--) {
@@ -112,11 +134,11 @@ export class GradientFunction implements ColorFunction {
 
         const x = LedMath.delerp(input, stop.pos, next.pos);
 
-        return {
-          r: LedMath.lerp(x, stop.color.r, next.color.r),
-          g: LedMath.lerp(x, stop.color.g, next.color.g),
-          b: LedMath.lerp(x, stop.color.b, next.color.b),
-        };
+        return new RgbaColor(
+          LedMath.lerp(x, stop.color.r, next.color.r),
+          LedMath.lerp(x, stop.color.g, next.color.g),
+          LedMath.lerp(x, stop.color.b, next.color.b)
+        );
       }
     }
 
@@ -129,16 +151,36 @@ export class GradientFunction implements ColorFunction {
 
 interface GradientStop {
   pos: number;
-  color: RgbColor;
+  color: RgbaColor;
 }
 
-interface RgbColor {
-  r: number;
-  g: number;
-  b: number;
+export class RgbaColor {
+  constructor(
+    /** red (0-255) */
+    public readonly r: number,
+    /** green (0-255) */
+    public readonly g: number,
+    /** blue (0-255) */
+    public readonly b: number,
+    /** alpha (0-1) */
+    public readonly a: number = 1.0,
+  ) {}
+
+  withR(r: number): RgbaColor {
+    return new RgbaColor(r, this.g, this.b, this.a);
+  }
+  withG(g: number): RgbaColor {
+    return new RgbaColor(this.r, g, this.b, this.a);
+  }
+  withB(b: number): RgbaColor {
+    return new RgbaColor(this.r, this.g, b, this.a);
+  }
+  withAlpha(a: number): RgbaColor {
+    return new RgbaColor(this.r, this.g, this.b, a);
+  }
 }
 
-const BLACK = {r: 0, g: 0, b: 0};
+const BLACK = new RgbaColor(0, 0, 0);
 
 /**
  * Led math helpers. Pretty much a bunch of math functions based on normalized (0-1) input and output

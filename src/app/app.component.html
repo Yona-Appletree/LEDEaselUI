@@ -1,7 +1,18 @@
 <ld-strip-preview [func]="testFunc"></ld-strip-preview>
 
-<ld-animation-preview [func]="testFunc"></ld-animation-preview>
+<ld-animation-preview [func]="testFunc"
+                      #previewComponent
+></ld-animation-preview>
 
+<mat-slider min="0"
+            max="2"
+            step="0.01"
+            value=".5"
+            [(ngModel)]="config.width.amplitude"
+            (input)="previewComponent.update()"
+            tickInterval="auto"
+            thumbLabel
+></mat-slider>
 
 
 <router-outlet></router-outlet>

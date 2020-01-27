@@ -41,11 +41,14 @@ export class LdAnimationPreviewComponent implements OnInit, OnChanges, AfterView
     const width = this.canvas.nativeElement.width;
     const height = this.canvas.nativeElement.height;
 
+    context.fillStyle = "rgb(0,0,0)";
+    context.fillRect(0, 0, width, height);
+
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
         const color = this.func.apply(y / height, x / width);
 
-        context.fillStyle = "rgb(" + color.r + "," + color.g + "," + color.b + ")";
+        context.fillStyle = `rgba(${color.r},${color.g},${color.b},${color.a})`;
         context.fillRect(x, y, 1, 1);
       }
     }
