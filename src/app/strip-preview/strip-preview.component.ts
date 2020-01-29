@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from "@angular/core";
-import { LdTimelineEntry } from "../model/engine/timeline";
+import { LdTimeline, LdTimelineEntry } from "../model/engine/timeline";
 
 @Component({
   selector: "ld-strip-preview",
@@ -8,7 +8,7 @@ import { LdTimelineEntry } from "../model/engine/timeline";
 })
 export class StripPreviewComponent implements OnInit, OnDestroy {
   @Input()
-  entry!: LdTimelineEntry;
+  timeline!: LdTimeline;
 
   @Input()
   ledCount = 48;
@@ -21,7 +21,7 @@ export class StripPreviewComponent implements OnInit, OnDestroy {
   running = true;
 
   get timeFrac() {
-    return (Date.now() % this.entry.durationMs) / this.entry.durationMs;
+    return (Date.now() % this.timeline.durationMs) / this.timeline.durationMs;
   }
 
   constructor() { }
@@ -35,7 +35,7 @@ export class StripPreviewComponent implements OnInit, OnDestroy {
       requestAnimationFrame(() => this.update());
     }
 
-    if (! this.entry) {
+    if (! this.timeline) {
       return;
     }
 
@@ -46,9 +46,9 @@ export class StripPreviewComponent implements OnInit, OnDestroy {
     this.pixelColors.length = this.ledCount;
 
     for (let i = 0; i < this.ledCount; i++) {
-      const color = this.entry.function.value.get(
-        i / this.ledCount,
-        time
+      const color = this.timeline.get(
+        time,
+        i / this.ledCount
       );
 
       this.pixelColors[i] = "rgb(" + color.r + "," + color.g + "," + color.b + ")";
@@ -57,5 +57,9 @@ export class StripPreviewComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.running = false;
+  }
+
+  trackByFn(index: number, item: string) {
+    return index;
   }
 }

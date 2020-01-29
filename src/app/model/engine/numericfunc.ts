@@ -1,7 +1,7 @@
-import { BaseLdEntity } from "./engine";
+import { BaseLdEntity, LdEntity } from "./engine";
 import { LdApiNumericConstant, LdApiSawtoothFunc, LdApiSineFunc, LdApiSquareFunc, LdApiTriangleFunc } from "../api/numericfunc";
 import { LedMath } from "./util/math";
-import { LdEntity } from "./factory";
+
 
 export interface LdNumericFunc2 extends BaseLdEntity<any> {
   get(input: number, input2: number): number;

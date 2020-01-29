@@ -1,12 +1,12 @@
 import { LdNumericFunc1 } from "./numericfunc";
 import { LdApiColorCompositionFunc2, LdApiColorCompositionFunc2Stop, LdApiColorFunction2, LdApiCurvedColorBand } from "../api/colorfunc2";
-import { BaseLdEntity } from "./engine";
+import { BaseLdEntity, LdEntity } from "./engine";
 import { LdApiColorFunction1, LdApiGradientColorFunc } from "../api/colorfunc1";
 import { LdColorFunction1 } from "./colorfunc1";
 import { LdApiNumericFunc1 } from "../api/numericfunc";
 import { RgbaColor } from "./util/rgbacolor";
 import { LedMath } from "./util/math";
-import { LdEntity } from "./factory";
+
 
 export interface LdColorFunction2 extends BaseLdEntity<any> {
   get(x: number, y: number): RgbaColor;
@@ -17,12 +17,14 @@ export class LdCurvedColorBand extends BaseLdEntity<LdApiCurvedColorBand> {
   static idType: LdApiCurvedColorBand["type"] = "LdApiCurvedColorBand";
 
   readonly colorSource = this.childEntity<LdApiColorFunction2, LdColorFunction2>(model => model.colorSource);
+
   readonly center = this.childEntity<LdApiNumericFunc1, LdNumericFunc1>(model => model.center);
   readonly width = this.childEntity<LdApiNumericFunc1, LdNumericFunc1>(model => model.width);
+  readonly colorShift = this.childEntity<LdApiNumericFunc1, LdNumericFunc1>(model => model.colorShift);
 
   get(
-    x: number,
-    time: number
+    time: number,
+    pos: number
   ) {
     const config = this.apiModel;
 
@@ -32,13 +34,13 @@ export class LdCurvedColorBand extends BaseLdEntity<LdApiCurvedColorBand> {
     const start = (waveCenter - width / 2);
     const end = (waveCenter + width / 2);
 
-    let result = this.get0(x, time, start, width);
+    let result = this.get0(pos, time, start, width);
 
     if (config.wrap) {
-      if (end > 1 && x < start && x < (end - 1)) {
+      if (end > 1 && pos < start && pos < (end - 1)) {
         result = result.addBlendWith(
           this.get0(
-            x + 1,
+            pos + 1,
             time,
             start + 1,
             width
@@ -46,10 +48,10 @@ export class LdCurvedColorBand extends BaseLdEntity<LdApiCurvedColorBand> {
         );
       }
 
-      if (start < 0 && x > end && x > (start + 1)) {
+      if (start < 0 && pos > end && pos > (start + 1)) {
         result = result.addBlendWith(
           this.get0(
-            x - 1,
+            pos - 1,
             time,
             start - 1,
             width
@@ -73,8 +75,8 @@ export class LdCurvedColorBand extends BaseLdEntity<LdApiCurvedColorBand> {
     }
 
     return this.colorSource.value.get(
-      this.apiModel.scaleColor ? mappedX : x,
-      time
+      time,
+      (this.apiModel.scaleColor ? mappedX : x) + this.colorShift.value.get(time)
     );
   }
 }
@@ -87,43 +89,49 @@ export class LdColorCompositionFunc2 extends BaseLdEntity<LdApiColorCompositionF
   readonly easingFunc = this.childEntity<LdApiNumericFunc1, LdNumericFunc1>(model => model.easingFunc);
   readonly stops = this.entityArray<LdApiColorCompositionFunc2Stop, LdColorCompositionFunc2Stop>(model => model.stops);
 
-  get(input1: number, input2: number): RgbaColor {
-    input1 = LedMath.sawtooth(input1);
+  get(
+    time: number,
+    pos: number
+  ): RgbaColor {
+    time = LedMath.sawtooth(time);
+
+    if (time < this.stops[0].pos || this.stops.length === 1) {
+      return this.stops[0].func.value.get(pos);
+    }
 
     for (let i = this.stops.length - 1; i >= 0; i--) {
       const curStop = this.stops[i];
 
-      if (input1 > curStop.pos) {
+      if (time > curStop.pos) {
         const nextStop = this.stops[(i + 1) % this.stops.length];
 
         const scaledX = this.easingFunc.value.get(
-          LedMath.delerp(input1, curStop.pos, nextStop.pos)
+          LedMath.delerp(time, curStop.pos, nextStop.pos)
         );
 
         if (scaledX < RgbaColor.TOLERANCE) {
-          return curStop.func.value.get(input2);
+          return curStop.func.value.get(pos);
         }
 
         if (scaledX > 1 - RgbaColor.TOLERANCE) {
-          return nextStop.func.value.get(input2);
+          return nextStop.func.value.get(pos);
         }
 
-        const colorA = curStop.func.value.get(input2);
-        const colorB = nextStop.func.value.get(input2);
+        const colorA = curStop.func.value.get(pos);
+        const colorB = nextStop.func.value.get(pos);
 
         return colorA.lerpTo(scaledX, colorB);
       }
     }
 
-    if (input1 < this.stops[0].pos) {
-      return this.stops[0].func.value.get(input2);
-    }
-
-    return this.stops[this.stops.length - 1].func.value.get(input2);
+    return this.stops[0].func.value.get(pos);
   }
 }
 
+@LdEntity()
 export class LdColorCompositionFunc2Stop extends BaseLdEntity<LdApiColorCompositionFunc2Stop> {
+  static idType: LdApiColorCompositionFunc2Stop["type"] = "LdApiColorCompositionFunc2Stop";
+
   get pos() {
     return this.apiModel.pos;
   }

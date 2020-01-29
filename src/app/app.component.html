@@ -1,10 +1,12 @@
-<ld-strip-preview [entry]="entry"
-                  (frame)="previewComponent.timePos = $event"
-></ld-strip-preview>
+<ng-container *ngFor="let entry of scene.timelines | keyvalue">
+  <ld-strip-preview [timeline]="entry.value"
+                    (frame)="timelineEditorComponent.timeIndicatorPos = $event"
+  ></ld-strip-preview>
 
-<ld-animation-preview [entry]="entry"
-                      #previewComponent
-></ld-animation-preview>
+  <ld-timeline-editor [timeline]="entry.value"
+                      #timelineEditorComponent
+  ></ld-timeline-editor>
+</ng-container>
 
 <!--<mat-slider min="0"-->
 <!--            max="2"-->
@@ -13,14 +15,5 @@
 <!--            [(ngModel)]="config.center.amplitude"-->
 <!--            (input)="config.center.amplitude = $event.value; previewComponent.update()"-->
 <!--&gt;</mat-slider>-->
-
-<!--<mat-slider min="0"-->
-<!--            max="2"-->
-<!--            step="0.01"-->
-<!--            value=".5"-->
-<!--            [(ngModel)]="config.width.amplitude"-->
-<!--            (input)="config.width.amplitude = $event.value; previewComponent.update()"-->
-<!--&gt;</mat-slider>-->
-
 
 <router-outlet></router-outlet>

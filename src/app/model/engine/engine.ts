@@ -1,6 +1,5 @@
 import { LdApiEntity } from "../api/entity";
 import { LdApiIdentifiedEntity } from "../api/common";
-import { createEntity, updateOrReplaceEntity } from "./factory";
 
 /**
  * A single LEDEasel engine instance.
@@ -9,7 +8,31 @@ export class LdEngine {
 }
 
 export abstract class BaseLdEntity<TModel extends LdApiEntity> {
+  static entityConstructorMap: { [type: string]: LdEntityClass<any, any> } = {};
+
+  static createEntity<TApi extends LdApiEntity, TEntity extends BaseLdEntity<TApi>>(
+    engine: LdEngine,
+    apiEntity: TApi
+  ) {
+    return new (this.entityConstructorMap[apiEntity.type] as any)(engine, apiEntity) as TEntity;
+  }
+
+  static updateOrReplaceEntity<TApiEntity extends LdApiEntity,
+    TEntity extends BaseLdEntity<TApiEntity>>(
+    engine: LdEngine,
+    entity: TEntity | null | undefined,
+    apiEntity: TApiEntity
+  ): TEntity {
+    if (entity && entity.apiType === apiEntity.type) {
+      entity.handleModelChange(apiEntity);
+      return entity;
+    } else {
+      return this.createEntity<TApiEntity, TEntity>(engine, apiEntity);
+    }
+  }
+
   private changeListeners: Array<() => void> = [];
+  computedProperties = new Map<string, any>();
 
   get apiType() {
     return this.apiModel.type;
@@ -24,6 +47,8 @@ export abstract class BaseLdEntity<TModel extends LdApiEntity> {
   handleModelChange(
     apiModel: TModel
   ) {
+    this.computedProperties.clear();
+
     for (const listener of this.changeListeners) {
       listener();
     }
@@ -38,7 +63,7 @@ export abstract class BaseLdEntity<TModel extends LdApiEntity> {
     const entityMap = new Map<string, TChildEntity>();
 
     for (const apiEntity of getter(this.apiModel)) {
-      entityMap.set(apiEntity.uuid, createEntity(this.engine, apiEntity));
+      entityMap.set(apiEntity.uuid, BaseLdEntity.createEntity(this.engine, apiEntity));
     }
 
     this.changeListeners.push(() => {
@@ -49,14 +74,14 @@ export abstract class BaseLdEntity<TModel extends LdApiEntity> {
         apiEntityMap.set(apiEntity.uuid, apiEntity);
 
         if (!entityMap.has(apiEntity.uuid)) {
-          entityMap.set(apiEntity.uuid, createEntity(this.engine, apiEntity));
+          entityMap.set(apiEntity.uuid, BaseLdEntity.createEntity(this.engine, apiEntity));
         }
       }
 
       entityMap.forEach((entity, uuid) => {
         if (apiEntityMap.has(uuid)) {
           // tslint:disable-next-line:no-non-null-assertion
-          entityMap.set(uuid, updateOrReplaceEntity<TChildApiEntity, TChildEntity>(
+          entityMap.set(uuid, BaseLdEntity.updateOrReplaceEntity<TChildApiEntity, TChildEntity>(
             this.engine,
             entity,
             // tslint:disable-next-line:no-non-null-assertion
@@ -75,11 +100,11 @@ export abstract class BaseLdEntity<TModel extends LdApiEntity> {
     getter: (model: TModel) => TChildApiEntity
   ): { value: TChildEntity } {
     const value = {
-      value: createEntity<TChildApiEntity, TChildEntity>(this.engine, getter(this.apiModel))
+      value: BaseLdEntity.createEntity<TChildApiEntity, TChildEntity>(this.engine, getter(this.apiModel))
     };
 
     this.changeListeners.push(() => {
-      value.value = updateOrReplaceEntity<TChildApiEntity, TChildEntity>(
+      value.value = BaseLdEntity.updateOrReplaceEntity<TChildApiEntity, TChildEntity>(
         this.engine,
         value.value,
         getter(this.apiModel)
@@ -99,7 +124,7 @@ export abstract class BaseLdEntity<TModel extends LdApiEntity> {
     const entityArray: TChildEntity[] = [];
 
     for (const apiEntity of getter(this.apiModel)) {
-      entityArray.push(createEntity(this.engine, apiEntity));
+      entityArray.push(BaseLdEntity.createEntity(this.engine, apiEntity));
     }
 
     this.changeListeners.push(() => {
@@ -114,7 +139,7 @@ export abstract class BaseLdEntity<TModel extends LdApiEntity> {
 
       // Update existing entities
       for (let i = apiValue.length; i < apiValue.length; i++) {
-        entityArray[i] = updateOrReplaceEntity<TChildApiEntity, TChildEntity>(
+        entityArray[i] = BaseLdEntity.updateOrReplaceEntity<TChildApiEntity, TChildEntity>(
           this.engine,
           entityArray[i],
           apiValue[i]
@@ -124,4 +149,44 @@ export abstract class BaseLdEntity<TModel extends LdApiEntity> {
 
     return entityArray;
   }
+}
+
+
+export function LdEntity() {
+  // tslint:disable-next-line:only-arrow-functions
+  return function <TApiEntity extends LdApiEntity,
+    TEntity extends BaseLdEntity<TApiEntity>>(constructor: LdEntityClass<TApiEntity, TEntity>) {
+    BaseLdEntity.entityConstructorMap[constructor.idType] = constructor;
+  };
+}
+
+export function LdComputed() {
+  return (
+    target: BaseLdEntity<any>,
+    propertyKey: string,
+    descriptor: PropertyDescriptor
+  ) => {
+    const oldGet = descriptor.get
+      || (() => { throw new Error("@LdComputed property must have a getter"); })();
+
+    // tslint:disable-next-line:only-arrow-functions
+    descriptor.get = function() {
+      const computedProperties = (this as BaseLdEntity<any>).computedProperties;
+
+      if (computedProperties.has(propertyKey)) {
+        return computedProperties.get(propertyKey);
+      } else {
+        const value = oldGet.apply(this);
+        computedProperties.set(propertyKey, value);
+        return value;
+      }
+    };
+  };
+}
+
+export interface LdEntityClass<TApiEntity extends LdApiEntity,
+  TEntity extends BaseLdEntity<TApiEntity>> {
+  new(engine: LdEngine, entity: TApiEntity): TEntity;
+
+  idType: TApiEntity["type"];
 }

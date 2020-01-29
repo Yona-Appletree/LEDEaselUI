@@ -1,12 +1,11 @@
 import { LdApiScene } from "../api/scene";
-import { BaseLdEntity } from "./engine";
+import { BaseLdEntity, LdEntity } from "./engine";
 import { LdApiTimeline } from "../api/timeline";
 import { LdApiFixture } from "../api/fixture";
 import { LdApiOutput } from "../api/output";
 import { LdTimeline } from "./timeline";
 import { LdOutput } from "./output";
 import { LdFixture } from "./fixture";
-import { LdEntity } from "./factory";
 
 
 @LdEntity()

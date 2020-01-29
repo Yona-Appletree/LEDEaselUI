@@ -1,4 +1,4 @@
 <div class="pixel"
-     *ngFor="let c of pixelColors"
+     *ngFor="let c of pixelColors; trackBy: trackByFn"
      [style.background]="c"
 ></div>

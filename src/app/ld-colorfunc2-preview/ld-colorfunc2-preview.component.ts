@@ -1,19 +1,26 @@
 import { AfterViewInit, Component, ElementRef, Input, OnChanges, OnInit, SimpleChanges, ViewChild } from "@angular/core";
-import { LdTimelineEntry } from "../model/engine/timeline";
+import { LdColorFunction2 } from "../model/engine/colorfunc2";
 
 @Component({
-  selector: "ld-animation-preview",
-  templateUrl: "./ld-animation-preview.component.html",
-  styleUrls: ["./ld-animation-preview.component.scss"]
+  selector: "ld-colorfunc2-preview",
+  templateUrl: "ld-colorfunc2-preview.component.html",
+  styleUrls: ["./ld-colorfunc2-preview.component.scss"]
 })
-export class LdAnimationPreviewComponent implements OnInit, OnChanges, AfterViewInit {
+export class LdColorFunc2PreviewComponent implements OnInit, OnChanges, AfterViewInit {
   @Input()
-  entry!: LdTimelineEntry;
+  func!: LdColorFunction2;
 
   @ViewChild("canvas")
   canvas!: ElementRef<HTMLCanvasElement>;
 
-  timePos = 0;
+  @Input()
+  width = 128;
+
+  @Input()
+  height = 32;
+
+  @Input()
+  timeIndicatorPos: number | null = null;
 
   constructor() {
   }
@@ -30,7 +37,7 @@ export class LdAnimationPreviewComponent implements OnInit, OnChanges, AfterView
   }
 
   update() {
-    if (!this.canvas || !this.entry) {
+    if (!this.canvas || !this.func) {
       return;
     }
 
@@ -48,7 +55,7 @@ export class LdAnimationPreviewComponent implements OnInit, OnChanges, AfterView
 
     for (let x = 0; x < width; x++) {
       for (let y = 0; y < height; y++) {
-        const color = this.entry.function.value.get(y / height, x / width);
+        const color = this.func.get(x / width, y / height);
 
         context.fillStyle = `rgba(${color.r},${color.g},${color.b},${color.a})`;
         context.fillRect(x, y, 1, 1);

@@ -1,0 +1,9 @@
+<canvas [width]="width"
+        [height]="height"
+        #canvas
+></canvas>
+
+<div class="time-indicator"
+     [style.left]="timeIndicatorPos * 100 + '%'"
+     *ngIf="timeIndicatorPos"
+></div>

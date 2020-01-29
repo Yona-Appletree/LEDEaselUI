@@ -4,6 +4,8 @@ import { LdApiColor } from "../../api/common";
 
 export class RgbaColor {
   static BLACK = new RgbaColor(0, 0, 0);
+  static TRANSPARENT = new RgbaColor(0, 0, 0, 0);
+
   static TOLERANCE = 1.0 / 256;
 
   static fromApi(color: LdApiColor) {

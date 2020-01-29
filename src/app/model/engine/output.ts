@@ -1,6 +1,6 @@
-import { BaseLdEntity } from "./engine";
+import { BaseLdEntity, LdEntity } from "./engine";
 import { LdApiOutput, LdApiOutputArtnet, LdApiOutputFastled } from "../api/output";
-import { LdEntity } from "./factory";
+
 
 export abstract class LdOutput<TModel extends LdApiOutput = LdApiOutput> extends BaseLdEntity<TModel> {}
 

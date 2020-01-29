@@ -1,9 +1,9 @@
 import { LdColorFunction2 } from "./colorfunc2";
-import { BaseLdEntity } from "./engine";
+import { BaseLdEntity, LdEntity } from "./engine";
 import { LdApiGradientColorFunc } from "../api/colorfunc1";
 import { RgbaColor } from "./util/rgbacolor";
 import { LedMath } from "./util/math";
-import { LdEntity } from "./factory";
+
 
 const TOLERANCE = 1 / 256.0;
 

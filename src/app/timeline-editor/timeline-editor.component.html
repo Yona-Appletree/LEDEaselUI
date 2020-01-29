@@ -1,0 +1,20 @@
+<div class="row"
+     *ngFor="let row of timeline.rows"
+     [style.width.px]="timeToPx(timeline.durationMs)"
+>
+  <div class="entry"
+       *ngFor="let entry of row"
+       [style.left.px]="timeToPx(entry.startMs)"
+       [style.width.px]="timeToPx(entry.durationMs)"
+  >
+    <ld-colorfunc2-preview [func]="entry"
+                           [width]="timeToPx(entry.durationMs)"
+                           class="entry-x-preview"
+    ></ld-colorfunc2-preview>
+  </div>
+</div>
+
+<div class="time-indicator"
+     [style.left.px]="timeToPx(timeIndicatorPos * timeline.durationMs)"
+     *ngIf="timeIndicatorPos"
+></div>
