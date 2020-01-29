@@ -1,6 +1,8 @@
-<canvas width="256"
-        height="64"
+<canvas width="128"
+        height="32"
         #canvas
-
-        style="wdith: 512px; height: 128px; image-rendering: pixelated;"
 ></canvas>
+
+<div class="time-indicator"
+     [style.left]="timePos * 100 + '%'"
+></div>

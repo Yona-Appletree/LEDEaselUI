@@ -1,5 +1,5 @@
-import { Component, Input, OnDestroy, OnInit } from "@angular/core";
-import { ColorBandFunction } from "../model/model";
+import { Component, EventEmitter, Input, OnDestroy, OnInit, Output } from "@angular/core";
+import { LdTimelineEntry } from "../model/engine/timeline";
 
 @Component({
   selector: "ld-strip-preview",
@@ -8,17 +8,21 @@ import { ColorBandFunction } from "../model/model";
 })
 export class StripPreviewComponent implements OnInit, OnDestroy {
   @Input()
-  func!: ColorBandFunction;
+  entry!: LdTimelineEntry;
 
   @Input()
   ledCount = 48;
 
-  @Input()
-  durationMs = 5000;
+  @Output()
+  frame = new EventEmitter<number>();
 
   pixelColors: string[] = [];
 
   running = true;
+
+  get timeFrac() {
+    return (Date.now() % this.entry.durationMs) / this.entry.durationMs;
+  }
 
   constructor() { }
 
@@ -31,16 +35,18 @@ export class StripPreviewComponent implements OnInit, OnDestroy {
       requestAnimationFrame(() => this.update());
     }
 
-    if (! this.func) {
+    if (! this.entry) {
       return;
     }
 
-    const time = (Date.now() % this.durationMs) / this.durationMs;
+    const time = this.timeFrac;
+
+    this.frame.emit(time);
 
     this.pixelColors.length = this.ledCount;
 
     for (let i = 0; i < this.ledCount; i++) {
-      const color = this.func.apply(
+      const color = this.entry.function.value.get(
         i / this.ledCount,
         time
       );
